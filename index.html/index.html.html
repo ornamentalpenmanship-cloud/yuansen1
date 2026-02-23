@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="源森AI">
+<title>源森AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --bg:#0f0f0f;--surface:#1a1a1a;--surface2:#242424;--border:#2e2e2e;
+    --accent:#c8ff00;--accent-dim:rgba(200,255,0,0.12);--accent-dim2:rgba(200,255,0,0.06);
+    --text:#e8e8e8;--text-dim:#888;--text-dimmer:#555;
+    --user-bg:#1e2a1a;--user-border:rgba(200,255,0,0.25);--radius:18px;
+  }
+  .light {
+    --bg:#f5f5f5;--surface:#ffffff;--surface2:#eeeeee;--border:#ddd;
+    --accent:#5a8a00;--accent-dim:rgba(90,138,0,0.12);--accent-dim2:rgba(90,138,0,0.06);
+    --text:#111;--text-dim:#555;--text-dimmer:#aaa;
+    --user-bg:#e8f5d0;--user-border:rgba(90,138,0,0.3);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;font-family:'Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;transition:background 0.3s,color 0.3s;}
+  #app{display:flex;height:100dvh;max-width:900px;margin:0 auto;position:relative;}
+
+  /* ── Sidebar ── */
+  #sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:transform 0.25s ease;z-index:50;}
+  #sidebar.hidden{display:none;}
+  .sidebar-header{padding:18px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .sidebar-logo{font-weight:700;font-size:16px;color:var(--accent);}
+  .sidebar-close{background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;}
+  .new-chat-btn{margin:12px;background:var(--accent);border:none;color:#000;font-weight:700;font-size:14px;padding:10px;border-radius:12px;cursor:pointer;font-family:inherit;transition:opacity 0.2s;}
+  .new-chat-btn:hover{opacity:0.85;}
+
+  .sidebar-section{padding:8px 12px 4px;font-size:11px;color:var(--text-dimmer);letter-spacing:0.05em;}
+  .session-list{flex:1;overflow-y:auto;padding:0 8px;}
+  .session-item{padding:10px 12px;border-radius:10px;cursor:pointer;font-size:13px;color:var(--text-dim);transition:all 0.15s;display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+  .session-item:hover{background:var(--surface2);}
+  .session-item.active{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(200,255,0,0.2);}
+  .session-icon{font-size:16px;flex-shrink:0;}
+  .session-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+  /* 身份选择 */
+  .identity-section{padding:12px;border-top:1px solid var(--border);}
+  .identity-label{font-size:11px;color:var(--text-dimmer);margin-bottom:8px;}
+  .identity-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+  .identity-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:8px 6px;border-radius:10px;font-size:12px;cursor:pointer;font-family:inherit;text-align:center;transition:all 0.2s;line-height:1.4;}
+  .identity-btn:hover,.identity-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+  .identity-btn span{display:block;font-size:18px;margin-bottom:2px;}
+
+  /* 底部设置 */
+  .sidebar-footer{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px;}
+  .footer-btn{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:8px;border-radius:10px;font-size:12px;cursor:pointer;font-family:inherit;text-align:center;transition:all 0.2s;}
+  .footer-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* ── Main chat area ── */
+  #main{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+  #header{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--border);background:var(--bg);z-index:10;}
+  .menu-btn{background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;padding:2px 6px;border-radius:8px;transition:color 0.2s;}
+  .menu-btn:hover{color:var(--accent);}
+  .avatar{width:36px;height:36px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 0 14px rgba(200,255,0,0.3);}
+  .header-info{flex:1;}
+  .header-name{font-weight:700;font-size:15px;color:var(--text);}
+  .header-status{font-size:11px;color:var(--accent);display:flex;align-items:center;gap:4px;margin-top:1px;}
+  .status-dot{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.8);}}
+  .header-badge{background:var(--accent-dim);border:1px solid rgba(200,255,0,0.3);color:var(--accent);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Space Mono',monospace;}
+  .theme-btn{background:none;border:none;color:var(--text-dim);font-size:18px;cursor:pointer;padding:4px;border-radius:8px;transition:color 0.2s;}
+  .theme-btn:hover{color:var(--accent);}
+
+  #messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth;}
+  #messages::-webkit-scrollbar{width:4px;}
+  #messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+  .msg{display:flex;gap:8px;animation:fadeUp 0.18s ease;will-change:transform,opacity;transform:translateZ(0);}
+  @keyframes fadeUp{from{opacity:0;transform:translate3d(0,8px,0);}to{opacity:1;transform:translate3d(0,0,0);}}
+  .msg.user{flex-direction:row-reverse;}
+  .msg-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;margin-top:2px;}
+  .msg.ai .msg-avatar{background:var(--surface2);border:1px solid var(--border);}
+  .msg.user .msg-avatar{background:var(--accent);}
+  .msg-body{max-width:76%;display:flex;flex-direction:column;gap:3px;}
+  .msg.user .msg-body{align-items:flex-end;}
+  .msg-bubble{padding:11px 15px;border-radius:var(--radius);font-size:14.5px;line-height:1.65;word-break:break-word;position:relative;cursor:pointer;}
+  .msg.ai .msg-bubble{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px;}
+  .msg.user .msg-bubble{background:var(--user-bg);border:1px solid var(--user-border);border-bottom-right-radius:4px;color:var(--text);}
+  .msg-time{font-size:10px;color:var(--text-dimmer);padding:0 4px;font-family:'Space Mono',monospace;}
+  .msg-bubble p{margin:0 0 8px;}.msg-bubble p:last-child{margin:0;}
+  .msg-bubble strong{color:var(--accent);font-weight:700;}
+  .msg-bubble ul,.msg-bubble ol{padding-left:18px;margin:6px 0;}
+  .msg-bubble li{margin:3px 0;}
+  .msg-bubble code{background:rgba(200,255,0,0.1);color:var(--accent);padding:1px 6px;border-radius:4px;font-family:'Space Mono',monospace;font-size:13px;}
+  .msg-bubble pre{background:#111;border:1px solid var(--border);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;}
+  .msg-bubble pre code{background:none;padding:0;color:#b0ffa0;}
+  .msg-bubble a{color:var(--accent);text-decoration:underline;}
+
+  /* 消息操作栏 */
+  .msg-actions{display:none;gap:6px;padding:2px 4px;}
+  .msg-body:hover .msg-actions{display:flex;}
+  .msg-action-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-dim);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;font-family:inherit;transition:all 0.15s;white-space:nowrap;}
+  .msg-action-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  /* 图片消息 */
+  .msg-image{max-width:200px;border-radius:12px;border:1px solid var(--border);display:block;margin-bottom:4px;}
+
+  /* Typing */
+  .typing-indicator{display:flex;gap:5px;align-items:center;padding:12px 15px;}
+  .typing-dot{width:7px;height:7px;background:var(--accent);border-radius:50%;animation:bounce 1.2s infinite;opacity:0.7;will-change:transform;}
+  .typing-dot:nth-child(2){animation-delay:0.2s;}.typing-dot:nth-child(3){animation-delay:0.4s;}
+  @keyframes bounce{0%,60%,100%{transform:translate3d(0,0,0);}30%{transform:translate3d(0,-6px,0);opacity:1;}}
+
+  #scroll-btn{position:absolute;bottom:90px;right:16px;width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;color:var(--accent);font-size:16px;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:all 0.2s;z-index:20;}
+  #scroll-btn:hover{background:var(--accent);color:#000;}
+  #scroll-btn.visible{display:flex;}
+
+  #quick-replies{flex-shrink:0;display:flex;gap:8px;padding:8px 16px 4px;overflow-x:auto;scrollbar-width:none;}
+  #quick-replies::-webkit-scrollbar{display:none;}
+  .qr-btn{flex-shrink:0;background:var(--accent-dim2);border:1px solid var(--border);color:var(--text-dim);padding:6px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;transition:all 0.2s;}
+  .qr-btn:hover,.qr-btn:active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+
+  /* Input */
+  #input-area{flex-shrink:0;display:flex;align-items:flex-end;gap:8px;padding:8px 14px 14px;border-top:1px solid var(--border);background:var(--bg);}
+  #user-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:inherit;font-size:15px;line-height:1.5;padding:10px 14px;resize:none;outline:none;max-height:120px;overflow-y:auto;transition:border-color 0.2s;}
+  #user-input::placeholder{color:var(--text-dimmer);}
+  #user-input:focus{border-color:rgba(200,255,0,0.4);}
+  .input-btn{width:42px;height:42px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;color:var(--text-dim);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+  .input-btn:hover{border-color:var(--accent);color:var(--accent);}
+  #img-input{display:none;}
+  #send-btn{width:42px;height:42px;background:var(--accent);border:none;border-radius:50%;color:#000;font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;box-shadow:0 0 14px rgba(200,255,0,0.25);}
+  #send-btn:hover{transform:scale(1.08);}
+  #send-btn:active{transform:scale(0.95);}
+  #send-btn:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+
+  /* 图片预览 */
+  #img-preview-wrap{display:none;padding:6px 14px 0;position:relative;width:fit-content;}
+  #img-preview-wrap.show{display:block;}
+  #img-preview{height:60px;border-radius:10px;border:1px solid var(--border);}
+  #img-remove{position:absolute;top:2px;right:10px;width:18px;height:18px;background:#333;border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+  /* Welcome */
+  #welcome{display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px 20px;gap:12px;}
+  .welcome-icon{width:64px;height:64px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:4px;animation:glow 3s infinite;will-change:box-shadow;transform:translateZ(0);}
+  @keyframes glow{0%,100%{box-shadow:0 0 30px rgba(200,255,0,0.3);}50%{box-shadow:0 0 55px rgba(200,255,0,0.55);}}
+  .welcome-title{font-size:20px;font-weight:700;}
+  .welcome-sub{font-size:14px;color:var(--text-dim);line-height:1.6;max-width:280px;}
+
+  .memory-toast{background:var(--accent-dim);border:1px solid rgba(200,255,0,0.2);border-radius:10px;padding:7px 14px;font-size:12px;color:var(--accent);text-align:center;margin:0 auto;animation:fadeUp 0.3s ease;}
+  .error-toast{background:rgba(255,100,100,0.1);border:1px solid rgba(255,100,100,0.3);border-radius:10px;padding:10px 14px;font-size:13px;color:#ff8080;text-align:center;margin:0 auto;display:flex;align-items:center;gap:10px;}
+  .retry-btn{background:rgba(255,100,100,0.2);border:1px solid rgba(255,100,100,0.4);color:#ff8080;padding:4px 12px;border-radius:20px;font-size:12px;cursor:pointer;font-family:inherit;}
+
+  #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:999;}
+  #loading.hidden{display:none;}
+  .loading-icon{width:56px;height:56px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;animation:glow 2s infinite;will-change:box-shadow;transform:translateZ(0);}
+  .loading-text{color:var(--text-dim);font-size:14px;}
+
+  #expired{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:998;padding:40px 32px;text-align:center;}
+  #expired.show{display:flex;}
+  .expired-icon{font-size:60px;}
+  .expired-title{font-size:22px;font-weight:700;}
+  .expired-sub{font-size:14px;color:var(--text-dim);line-height:1.8;max-width:280px;}
+  .expired-tag{font-size:13px;color:#ff6b6b;background:rgba(255,107,107,0.1);border:1px solid rgba(255,107,107,0.3);padding:8px 20px;border-radius:20px;}
+  .expired-contact{font-size:13px;color:var(--accent);background:var(--accent-dim);border:1px solid rgba(200,255,0,0.3);padding:10px 24px;border-radius:20px;}
+
+  /* Copy toast */
+  #copy-toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity 0.3s;z-index:100;pointer-events:none;}
+  #copy-toast.show{opacity:1;}
+
+
+  /* 自定义身份弹窗 */
+  #custom-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:none;align-items:flex-end;justify-content:center;z-index:200;}
+  #custom-modal.open{display:flex;}
+  .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:24px 20px 32px;width:100%;max-width:780px;animation:slideUp 0.2s ease;will-change:transform;}
+  @keyframes slideUp{from{transform:translate3d(0,100%,0);}to{transform:translate3d(0,0,0);}}
+  .modal-title{font-weight:700;font-size:16px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;}
+  .modal-close{background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;}
+  .field input,.field textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:10px 14px;outline:none;}
+  .field textarea{resize:vertical;min-height:80px;}
+  .field input:focus,.field textarea:focus{border-color:rgba(200,255,0,0.4);}
+  .emoji-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .emoji-opt{width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+  .emoji-opt.selected,.emoji-opt:hover{border-color:var(--accent);background:var(--accent-dim);}
+  .modal-save{width:100%;background:var(--accent);border:none;color:#000;font-weight:700;font-size:15px;padding:13px;border-radius:12px;cursor:pointer;font-family:inherit;margin-top:4px;transition:opacity 0.2s;}
+  .modal-save:hover{opacity:0.88;}
+
+  /* Mobile sidebar overlay */
+  #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:49;}
+  #sidebar-overlay.show{display:block;}
+
+  @media(max-width:600px){
+    #sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);}
+    #sidebar.mobile-open{transform:translateX(0);display:flex;}
+  }
+
+  /* 隐私提示 */
+  .privacy-note{font-size:11px;color:var(--text-dimmer);text-align:center;padding:4px 16px 2px;}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-icon">🌿</div>
+  <div class="loading-text">正在加载源森AI…</div>
+</div>
+
+<div id="expired">
+  <div class="expired-icon">🔒</div>
+  <div class="expired-title">试用已到期</div>
+  <div class="expired-sub">您的专属AI助手试用期已结束，如需继续使用请联系服务商开通正式版。</div>
+  <div class="expired-tag">服务已暂停</div>
+  <div class="expired-contact">请联系您的服务商续费</div>
+</div>
+
+<div id="copy-toast">已复制</div>
+<div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<div id="app">
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">🌿 源森AI</div>
+      <button class="sidebar-close" onclick="closeSidebar()">✕</button>
+    </div>
+    <button class="new-chat-btn" onclick="newSession()">＋ 新建对话</button>
+
+    <div class="sidebar-section">对话记录</div>
+    <div class="session-list" id="session-list"></div>
+
+    <div class="identity-section">
+      <div class="identity-label">切换身份</div>
+      <div class="identity-grid" id="identity-grid"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="footer-btn" onclick="clearHistory()">🗑 清除记录</button>
+      <button class="footer-btn" onclick="exportChat()">📋 导出聊天</button>
+      <button class="footer-btn" onclick="openCustomModal()">⚙️ 自定义</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <div id="header">
+      <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="avatar">🌿</div>
+      <div class="header-info">
+        <div class="header-name">源森AI</div>
+        <div class="header-status"><span class="status-dot"></span><span id="identity-label">私人助手</span></div>
+      </div>
+      <div class="header-badge" id="merchant-badge">加载中…</div>
+      <button class="theme-btn" onclick="toggleTheme()" title="切换主题">☀️</button>
+    </div>
+
+    <div id="messages">
+      <div id="welcome">
+        <div class="welcome-icon">🌿</div>
+        <div class="welcome-title">你好，我是源森AI</div>
+        <div class="welcome-sub">你的专属私人助手，记住每次对话，越用越懂你～</div>
+      </div>
+    </div>
+
+    <div class="privacy-note">🔒 对话数据仅用于为您提供服务，不会用于其他用途</div>
+
+    <button id="scroll-btn" onclick="scrollToBottom(true)">↓</button>
+
+    <div id="quick-replies"></div>
+
+    <div id="img-preview-wrap">
+      <img id="img-preview" src="" alt="预览">
+      <button id="img-remove" onclick="removeImage()">✕</button>
+    </div>
+
+    <div id="input-area">
+      <button class="input-btn" onclick="document.getElementById('img-input').click()" title="发送图片">＋</button>
+      <input type="file" id="img-input" accept="image/*">
+      <button class="input-btn" id="voice-btn" title="语音输入">🎤</button>
+      <textarea id="user-input" placeholder="有什么需要帮忙的？" rows="1"></textarea>
+      <button id="send-btn" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://jppkusvirfndmgtxbjnl.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwcGt1c3ZpcmZuZG1ndHhiam5sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE3OTAyODEsImV4cCI6MjA4NzM2NjI4MX0.ZfKK_mYLW0jUlslbZtk2yCXwIwWdpHob-LWAGuXHPrg';
+const DEEPSEEK_KEY = 'sk-ef8ae6dba496408785a9cb88a85c816b';
+const QWEN_KEY = 'sk-7489ce241f4c4ba7b9b6b5bb040b1aef';
+
+// 身份配置
+const IDENTITIES = [
+  { id: 'merchant', icon: '🛍️', name: '电商助手', prompt: '你是一个专业的电商助手，只负责帮商家写产品文案、策划促销活动、回复买家消息。不涉及电商以外的话题。语气亲切自然，回复简洁实用。', quickReplies: ['✍️ 新品文案','📦 发货回复','💬 价格异议','🔥 促销文案','🙏 售后安抚'] },
+  { id: 'life', icon: '🌱', name: '生活助手', prompt: '你是一个贴心的生活助手。你只关注日常生活话题，包括饮食、健康、家居、购物、出行、兴趣爱好等。不涉及工作、电商、学习等其他领域。语气温暖轻松，像一个懂生活的朋友。', quickReplies: ['🍳 今天吃什么','💪 运动建议','🛒 购物清单','😴 改善睡眠'] },
+  { id: 'work', icon: '💼', name: '工作助手', prompt: '你是一个高效的工作助手，专注于职场相关内容：写报告、整理会议记录、分析问题、制定工作计划、写邮件。不涉及生活娱乐、电商等话题。语气专业严谨，回复条理清晰。', quickReplies: ['📊 写工作报告','📝 整理会议记录','🎯 制定计划','📧 写邮件'] },
+  { id: 'study', icon: '📚', name: '学习助手', prompt: '你是一个耐心的学习助手，专注于学习相关内容：解释知识概念、辅导作业、制定学习计划、知识总结。不涉及娱乐、电商、工作等话题。语气鼓励正向，善于用例子解释难点。', quickReplies: ['🔢 解题思路','📖 概念解释','📅 学习计划','✅ 知识总结'] },
+  { id: 'creative', icon: '🎨', name: '创意助手', prompt: '你是一个充满创意的助手，专注于创意类需求：头脑风暴、创意写作、取名、活动策划、故事创作等。思维发散有趣，不受常规限制。不要把话题引向电商或工作。', quickReplies: ['💡 头脑风暴','✍️ 创意写作','🏷️ 帮我取名','🎉 活动策划'] },
+  { id: 'companion', icon: '💬', name: '陪伴聊天', prompt: '你是一个温暖体贴的聊天伙伴，专注于陪伴和情感支持：倾听烦恼、聊天解闷、分享日常、给予鼓励。不主动引导到工作、学习、电商等话题，跟随用户聊他想聊的。像朋友一样自然陪伴，不说教。', quickReplies: ['😊 随便聊聊','💭 分享烦恼','🎮 聊聊爱好','🌙 睡前聊天'] },
+];
+
+const urlParams = new URLSearchParams(window.location.search);
+let merchantId = (urlParams.get('id') || 'default').replace(/[^a-zA-Z0-9_-]/g, '');
+
+let merchant = null;
+let sessionHistory = [];
+let currentIdentity = IDENTITIES[0];
+let currentSessionId = 'identity_merchant'; // 默认跟身份绑定
+let pendingImage = null;
+let lastFailedMessage = null;
+let isDark = true;
+
+// ── Supabase ──
+async function sbFetch(path, method = 'GET', body = null) {
+  const opts = {
+    method,
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : ''
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, opts);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function getMerchant() {
+  const data = await sbFetch(`merchants?id=eq.${merchantId}&select=*`);
+  return data && data.length > 0 ? data[0] : null;
+}
+
+async function createMerchant() {
+  const expires = new Date();
+  expires.setDate(expires.getDate() + 7);
+  const data = await sbFetch('merchants', 'POST', {
+    id: merchantId, name: merchantId, profile: '',
+    expires_at: expires.toISOString(),
+    created_at: new Date().toISOString()
+  });
+  return (data && data.length > 0) ? data[0] : { id: merchantId, name: merchantId, profile: '', expires_at: expires.toISOString() };
+}
+
+async function updateProfile(profile) {
+  await sbFetch(`merchants?id=eq.${merchantId}`, 'PATCH', { profile });
+}
+
+async function getHistory(sessionId) {
+  const sid = sessionId || currentSessionId;
+  const data = await sbFetch(`messages?merchant_id=eq.${merchantId}&order=created_at.asc&limit=40&select=role,content,image_url,session_id`);
+  return (data || []).filter(m => (m.session_id || 'main') === sid);
+}
+
+async function getSessions() {
+  const data = await sbFetch(`messages?merchant_id=eq.${merchantId}&select=session_id,content,created_at&order=created_at.desc`);
+  if (!data) return [];
+  const prefix = 'identity_' + currentIdentity.id; // 只显示当前身份的对话
+  const seen = new Map();
+  for (const m of data) {
+    const sid = m.session_id || 'main';
+    if (!sid.startsWith(prefix)) continue; // 过滤掉其他身份的对话
+    if (!seen.has(sid)) seen.set(sid, m.content?.substring(0, 20) || '新对话');
+  }
+  return Array.from(seen.entries()).map(([id, preview]) => ({ id, preview }));
+}
+
+async function saveMessage(role, content, imageUrl = null) {
+  await sbFetch('messages', 'POST', {
+    merchant_id: merchantId,
+    role, content,
+    image_url: imageUrl || null,
+    session_id: currentSessionId,
+    created_at: new Date().toISOString()
+  });
+}
+
+async function deleteSessionMessages(sessionId) {
+  await sbFetch(`messages?merchant_id=eq.${merchantId}&session_id=eq.${sessionId}`, 'DELETE');
+}
+
+function isExpired(m) { return m.expires_at && new Date(m.expires_at) < new Date(); }
+function daysLeft(m) {
+  if (!m.expires_at) return 999;
+  return Math.ceil((new Date(m.expires_at) - new Date()) / 86400000);
+}
+
+// ── Sidebar ──
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('sidebar-overlay');
+  if (window.innerWidth <= 600) {
+    sb.classList.toggle('mobile-open');
+    ov.classList.toggle('show');
+  } else {
+    sb.classList.toggle('hidden');
+  }
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-overlay').classList.remove('show');
+}
+
+function renderIdentityGrid() {
+  const grid = document.getElementById('identity-grid');
+  grid.innerHTML = '';
+
+  // 默认身份
+  IDENTITIES.forEach(id => {
+    const wrap = document.createElement('div');
+    wrap.className = 'identity-wrap';
+    const btn = document.createElement('button');
+    btn.className = 'identity-btn' + (id.id === currentIdentity.id ? ' active' : '');
+    btn.innerHTML = `<span>${id.icon}</span>${id.name}`;
+    btn.onclick = () => switchIdentity(id);
+    wrap.appendChild(btn);
+    grid.appendChild(wrap);
+  });
+
+  // 自定义身份（支持多个）
+  const customs = getCustomIdentities();
+  customs.forEach((ci, idx) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'identity-wrap';
+    const btn = document.createElement('button');
+    btn.className = 'identity-btn' + (currentIdentity.id === 'custom_' + idx ? ' active' : '');
+    btn.innerHTML = `<span>${ci.emoji}</span>${ci.name}`;
+    const identity = { id: 'custom_' + idx, icon: ci.emoji, name: ci.name, prompt: ci.prompt, quickReplies: ['💬 随便聊聊','✍️ 帮我写点什么','💡 给我个建议','📝 帮我整理思路'] };
+    btn.onclick = () => switchIdentity(identity);
+    // 删除按钮
+    const del = document.createElement('button');
+    del.className = 'identity-del';
+    del.textContent = '✕';
+    del.title = '删除此身份';
+    del.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm(`确定删除「${ci.name}」吗？`)) {
+        deleteCustomIdentity(idx);
+      }
+    };
+    wrap.appendChild(btn);
+    wrap.appendChild(del);
+    grid.appendChild(wrap);
+  });
+}
+
+function getCustomIdentities() {
+  // 从 merchant 对象里读，已在 init 时加载
+  return (merchant && merchant.custom_identities) ? merchant.custom_identities : [];
+}
+
+async function saveCustomIdentities(list) {
+  if (merchant) merchant.custom_identities = list;
+  await sbFetch(`merchants?id=eq.${merchantId}`, 'PATCH', { custom_identities: list });
+}
+
+async function deleteCustomIdentity(idx) {
+  const customs = getCustomIdentities();
+  customs.splice(idx, 1);
+  await saveCustomIdentities(customs);
+  if (currentIdentity.id === 'custom_' + idx) {
+    switchIdentity(IDENTITIES[0]);
+  } else {
+    renderIdentityGrid();
+  }
+  showMemoryToast('已删除该自定义身份');
+}
+
+async function switchIdentity(identity) {
+  currentIdentity = identity;
+  currentSessionId = 'identity_' + identity.id; // 每个身份独立的session
+  sessionHistory = [];
+
+  // 加载该身份的历史记录
+  const messages = document.getElementById('messages');
+  messages.innerHTML = '';
+  const history = await getHistory(currentSessionId);
+  if (history.length > 0) {
+    for (const msg of history) {
+      addMessageToUI(msg.role === 'user' ? 'user' : 'ai', msg.content, false, msg.image_url || null);
+    }
+    sessionHistory = history.map(m => ({ role: m.role, content: m.content }));
+    scrollToBottom(false);
+  } else {
+    messages.innerHTML = `<div id="welcome"><div class="welcome-icon">${identity.icon}</div><div class="welcome-title">${identity.name}</div><div class="welcome-sub">这是专属于这个身份的对话，开始聊吧～</div></div>`;
+  }
+
+  document.getElementById('identity-label').textContent = identity.name;
+  document.querySelector('.avatar').textContent = identity.icon;
+  renderIdentityGrid();
+  renderQuickReplies();
+  await renderSessionList();
+  showMemoryToast(`已切换到 ${identity.icon} ${identity.name}`);
+  closeSidebar();
+}
+
+async function renderSessionList() {
+  const list = document.getElementById('session-list');
+  list.innerHTML = '';
+  const sessions = await getSessions();
+  if (sessions.length === 0) {
+    list.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--text-dimmer);text-align:center;">暂无对话记录</div>';
+    return;
+  }
+  sessions.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'session-item' + (s.id === currentSessionId ? ' active' : '');
+
+    const icon = document.createElement('span');
+    icon.className = 'session-icon';
+    icon.textContent = '💬';
+
+    const name = document.createElement('span');
+    name.className = 'session-name';
+    name.textContent = s.preview;
+
+    const del = document.createElement('button');
+    del.className = 'session-del';
+    del.textContent = '🗑';
+    del.title = '删除此对话';
+    del.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm('确定删除这条对话记录吗？')) return;
+      await deleteSessionMessages(s.id);
+      // 如果删的是当前会话，新建一个
+      if (s.id === currentSessionId) {
+        newSession();
+      } else {
+        await renderSessionList();
+      }
+      showMemoryToast('对话记录已删除');
+    };
+
+    item.appendChild(icon);
+    item.appendChild(name);
+    item.appendChild(del);
+    item.onclick = () => loadSession(s.id);
+    list.appendChild(item);
+  });
+}
+
+async function loadSession(sessionId) {
+  currentSessionId = sessionId;
+  sessionHistory = [];
+  const messages = document.getElementById('messages');
+  messages.innerHTML = '';
+  const history = await getHistory(sessionId);
+  if (history.length > 0) {
+    for (const msg of history) {
+      addMessageToUI(msg.role === 'user' ? 'user' : 'ai', msg.content, false, msg.image_url || null);
+    }
+    sessionHistory = history.map(m => ({ role: m.role, content: m.content }));
+    scrollToBottom(false);
+  } else {
+    messages.innerHTML = '<div id="welcome"><div class="welcome-icon">🌿</div><div class="welcome-title">新对话开始了</div><div class="welcome-sub">有什么我可以帮你的？</div></div>';
+  }
+  await renderSessionList();
+  closeSidebar();
+}
+
+function newSession() {
+  currentSessionId = 'session_' + Date.now();
+  sessionHistory = [];
+  const messages = document.getElementById('messages');
+  messages.innerHTML = '<div id="welcome"><div class="welcome-icon">🌿</div><div class="welcome-title">新对话开始了</div><div class="welcome-sub">有什么我可以帮你的？</div></div>';
+  renderSessionList();
+  closeSidebar();
+}
+
+async function clearHistory() {
+  if (!confirm('确定清除当前对话记录吗？商家画像不会被清除。')) return;
+  await deleteSessionMessages(currentSessionId);
+  sessionHistory = [];
+  const messages = document.getElementById('messages');
+  messages.innerHTML = '<div id="welcome"><div class="welcome-icon">🌿</div><div class="welcome-title">对话已清除</div><div class="welcome-sub">记忆画像保留，重新开始吧～</div></div>';
+  renderSessionList();
+}
+
+function exportChat() {
+  const msgs = sessionHistory.filter(m => typeof m.content === 'string');
+  if (msgs.length === 0) { alert('没有可导出的内容'); return; }
+  const text = msgs.map(m => `${m.role === 'user' ? '我' : '源森AI'}：${m.content}`).join('\n\n');
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `源森AI对话_${new Date().toLocaleDateString()}.txt`;
+  a.click();
+}
+
+// ── Theme ──
+function toggleTheme() {
+  isDark = !isDark;
+  document.body.classList.toggle('light', !isDark);
+  document.querySelector('.theme-btn').textContent = isDark ? '☀️' : '🌙';
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+}
+
+// ── Quick replies ──
+function renderQuickReplies() {
+  const qr = document.getElementById('quick-replies');
+  qr.innerHTML = '';
+  currentIdentity.quickReplies.forEach(label => {
+    const btn = document.createElement('button');
+    btn.className = 'qr-btn';
+    btn.textContent = label;
+    btn.onclick = () => sendQuick(label.replace(/^[\S]+\s/, '').trim() || label);
+    qr.appendChild(btn);
+  });
+}
+
+// ── Image ──
+document.getElementById('img-input').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    pendingImage = e.target.result;
+    document.getElementById('img-preview').src = pendingImage;
+    document.getElementById('img-preview-wrap').classList.add('show');
+  };
+  reader.readAsDataURL(file);
+  this.value = '';
+});
+
+function removeImage() {
+  pendingImage = null;
+  document.getElementById('img-preview-wrap').classList.remove('show');
+  document.getElementById('img-preview').src = '';
+}
+
+// ── Voice input ──
+const voiceBtn = document.getElementById('voice-btn');
+let recognition = null;
+if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.lang = 'zh-CN';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.onresult = e => {
+    const text = e.results[0][0].transcript;
+    document.getElementById('user-input').value += text;
+    voiceBtn.textContent = '🎤';
+  };
+  recognition.onerror = () => { voiceBtn.textContent = '🎤'; };
+  recognition.onend = () => { voiceBtn.textContent = '🎤'; };
+  voiceBtn.onclick = () => {
+    if (voiceBtn.textContent === '🔴') { recognition.stop(); voiceBtn.textContent = '🎤'; }
+    else { recognition.start(); voiceBtn.textContent = '🔴'; }
+  };
+} else {
+  voiceBtn.style.display = 'none';
+}
+
+// ── UI helpers ──
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('user-input');
+const sendBtn = document.getElementById('send-btn');
+const scrollBtn = document.getElementById('scroll-btn');
+const loadingEl = document.getElementById('loading');
+
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+});
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+messagesEl.addEventListener('scroll', () => {
+  const nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 80;
+  scrollBtn.classList.toggle('visible', !nearBottom);
+});
+
+function scrollToBottom(smooth = false) {
+  messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? 'smooth' : 'instant' });
+}
+
+function now() {
+  return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showCopyToast() {
+  const t = document.getElementById('copy-toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function addMessageToUI(role, content, animate = true, imageUrl = null) {
+  document.getElementById('welcome')?.remove();
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  if (!animate) div.style.animation = 'none';
+
+  const avatarEl = document.createElement('div');
+  avatarEl.className = 'msg-avatar';
+  avatarEl.textContent = role === 'user' ? '👤' : '🌿';
+
+  const bodyEl = document.createElement('div');
+  bodyEl.className = 'msg-body';
+
+  if (imageUrl) {
+    const img = document.createElement('img');
+    img.className = 'msg-image';
+    img.src = imageUrl;
+    bodyEl.appendChild(img);
+  }
+
+  if (content) {
+    const bubbleEl = document.createElement('div');
+    bubbleEl.className = 'msg-bubble';
+    bubbleEl.innerHTML = role === 'ai' ? marked.parse(content) : escapeHtml(content);
+    // 点击复制
+    bubbleEl.onclick = () => {
+      navigator.clipboard.writeText(content).then(() => showCopyToast());
+    };
+    bodyEl.appendChild(bubbleEl);
+  }
+
+  // 操作栏
+  const actionsEl = document.createElement('div');
+  actionsEl.className = 'msg-actions';
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'msg-action-btn';
+  copyBtn.textContent = '复制';
+  copyBtn.onclick = () => {
+    navigator.clipboard.writeText(content || '').then(() => showCopyToast());
+  };
+  actionsEl.appendChild(copyBtn);
+  if (role === 'ai') {
+    const goodBtn = document.createElement('button');
+    goodBtn.className = 'msg-action-btn';
+    goodBtn.textContent = '👍';
+    goodBtn.onclick = () => { goodBtn.textContent = '👍 已赞'; goodBtn.disabled = true; };
+    actionsEl.appendChild(goodBtn);
+  }
+  bodyEl.appendChild(actionsEl);
+
+  const timeEl = document.createElement('div');
+  timeEl.className = 'msg-time';
+  timeEl.textContent = now();
+  bodyEl.appendChild(timeEl);
+
+  div.appendChild(avatarEl);
+  div.appendChild(bodyEl);
+  messagesEl.appendChild(div);
+  if (animate) scrollToBottom(true);
+}
+
+function addTyping() {
+  document.getElementById('welcome')?.remove();
+  const div = document.createElement('div');
+  div.className = 'msg ai'; div.id = 'typing-msg';
+  const av = document.createElement('div'); av.className = 'msg-avatar'; av.textContent = '🌿';
+  const body = document.createElement('div'); body.className = 'msg-body';
+  const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
+  const ind = document.createElement('div'); ind.className = 'typing-indicator';
+  for (let i = 0; i < 3; i++) { const d = document.createElement('div'); d.className = 'typing-dot'; ind.appendChild(d); }
+  bubble.appendChild(ind); body.appendChild(bubble); div.appendChild(av); div.appendChild(body);
+  messagesEl.appendChild(div); scrollToBottom(true);
+}
+
+function removeTyping() { document.getElementById('typing-msg')?.remove(); }
+
+function showMemoryToast(text) {
+  const toast = document.createElement('div');
+  toast.className = 'memory-toast';
+  toast.textContent = text;
+  messagesEl.appendChild(toast);
+  scrollToBottom(true);
+}
+
+function showErrorWithRetry(msg, retryFn) {
+  const wrap = document.createElement('div');
+  wrap.className = 'error-toast';
+  wrap.innerHTML = `<span>⚠️ ${msg}</span>`;
+  const btn = document.createElement('button');
+  btn.className = 'retry-btn';
+  btn.textContent = '重试';
+  btn.onclick = () => { wrap.remove(); retryFn(); };
+  wrap.appendChild(btn);
+  messagesEl.appendChild(wrap);
+  scrollToBottom(true);
+}
+
+// ── Send message ──
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  const hasImage = !!pendingImage;
+  if (!text && !hasImage) return;
+  if (sendBtn.disabled) return;
+  if (isExpired(merchant)) { document.getElementById('expired').classList.add('show'); return; }
+
+  const imageToSend = pendingImage;
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  sendBtn.disabled = true;
+
+  addMessageToUI('user', text || null, true, imageToSend);
+  removeImage();
+
+  let userContent;
+  if (hasImage) {
+    userContent = [
+      { type: 'image_url', image_url: { url: imageToSend } },
+      { type: 'text', text: text || '请帮我分析这张图片，给出实用建议' }
+    ];
+  } else {
+    userContent = text;
+  }
+
+  sessionHistory.push({ role: 'user', content: userContent });
+  saveMessage('user', text, imageToSend).catch(console.error);
+  addTyping();
+
+  await doAICall(hasImage, imageToSend, text);
+  sendBtn.disabled = false;
+  inputEl.focus();
+}
+
+async function doAICall(hasImage, imageToSend, text) {
+  try {
+    let systemPrompt = currentIdentity.prompt;
+    if (merchant && merchant.profile) {
+      systemPrompt += `\n\n【关于这个人的了解——无论在哪个场景，这些特质始终适用】\n${merchant.profile}\n\n请在回答中自然地考虑这些特质，比如对强势的人直接说结论，对细心的人多给细节，但不要直接说出你在参考这份画像。`;
+    }
+
+    let res;
+    if (hasImage) {
+      res = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${QWEN_KEY}` },
+        body: JSON.stringify({
+          model: 'qwen-vl-plus', max_tokens: 1024,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: sessionHistory[sessionHistory.length-1].content }
+          ]
+        })
+      });
+    } else {
+      const textOnlyHistory = sessionHistory.slice(-20).filter(m => typeof m.content === 'string');
+      res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_KEY}` },
+        body: JSON.stringify({
+          model: 'deepseek-chat', max_tokens: 1024,
+          messages: [{ role: 'system', content: systemPrompt }, ...textOnlyHistory]
+        })
+      });
+    }
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const aiText = data.choices[0].message.content;
+
+    removeTyping();
+    sessionHistory.push({ role: 'assistant', content: aiText });
+    addMessageToUI('ai', aiText);
+    saveMessage('assistant', aiText).catch(console.error);
+    await renderSessionList();
+
+    if (sessionHistory.filter(m => typeof m.content === 'string').length % 10 === 0) {
+      updateMerchantProfile().catch(console.error);
+    }
+  } catch (err) {
+    removeTyping();
+    lastFailedMessage = { hasImage, imageToSend, text };
+    showErrorWithRetry('网络慢了，再试一次？', () => {
+      addTyping();
+      doAICall(hasImage, imageToSend, text);
+    });
+  }
+}
+
+async function updateMerchantProfile() {
+  const recent = sessionHistory.slice(-10)
+    .filter(m => typeof m.content === 'string')
+    .map(m => `${m.role === 'user' ? '用户' : 'AI'}：${m.content}`)
+    .join('\n');
+  if (!recent) return;
+
+  const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${DEEPSEEK_KEY}` },
+    body: JSON.stringify({
+      model: 'deepseek-chat', max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: `根据以下对话，提炼这个人的个人特质，包括：性格特点（如强势/温和/幽默）、沟通风格、兴趣爱好、价值观、常见需求和偏好等。这份画像会被不同场景的AI助手共用，所以要聚焦在"这是个什么样的人"而不是某个具体场景。\n\n对话内容：\n${recent}\n\n已有画像：${merchant.profile || '无'}\n\n输出更新后的完整人物画像（不超过200字，用简洁的句子描述）：`
+      }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) return;
+  merchant.profile = data.choices[0].message.content;
+  await updateProfile(merchant.profile);
+  showMemoryToast('✓ 我又多了解你一些了');
+}
+
+function sendQuick(text) {
+  inputEl.value = text;
+  sendMessage();
+}
+
+
+// ── 自定义身份 ──
+const EMOJI_OPTIONS = ['🌿','🤖','🎯','💼','🌸','🦊','🐉','⚡','🎨','🌙','🔥','💎','🦋','🍀','🌊'];
+let selectedEmoji = '🌿';
+let customIdentity = JSON.parse(localStorage.getItem('customIdentity') || 'null');
+
+function openCustomModal() {
+  // 填入当前自定义值或空
+  const ci = customIdentity || { emoji: '🌿', name: '', prompt: '' };
+  selectedEmoji = ci.emoji || '🌿';
+  document.getElementById('custom-name').value = ci.name || '';
+  document.getElementById('custom-prompt').value = ci.prompt || '';
+
+  // 渲染emoji选择
+  const row = document.getElementById('emoji-row');
+  row.innerHTML = '';
+  EMOJI_OPTIONS.forEach(e => {
+    const btn = document.createElement('div');
+    btn.className = 'emoji-opt' + (e === selectedEmoji ? ' selected' : '');
+    btn.textContent = e;
+    btn.onclick = () => {
+      selectedEmoji = e;
+      document.querySelectorAll('.emoji-opt').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+    };
+    row.appendChild(btn);
+  });
+
+  document.getElementById('custom-modal').classList.add('open');
+  closeSidebar();
+}
+
+function closeCustomModal() {
+  document.getElementById('custom-modal').classList.remove('open');
+}
+
+async function saveCustomIdentity() {
+  const name = document.getElementById('custom-name').value.trim();
+  const prompt = document.getElementById('custom-prompt').value.trim();
+  if (!name || !prompt) { alert('请填写名称和角色背景'); return; }
+
+  const customs = getCustomIdentities();
+  customs.push({ emoji: selectedEmoji, name, prompt });
+  await saveCustomIdentities(customs);
+  const newIdx = customs.length - 1;
+
+  // 切换到新自定义身份
+  currentIdentity = {
+    id: 'custom_' + newIdx,
+    icon: selectedEmoji,
+    name,
+    prompt,
+    quickReplies: ['💬 随便聊聊', '✍️ 帮我写点什么', '💡 给我个建议', '📝 帮我整理思路']
+  };
+
+  document.getElementById('identity-label').textContent = name;
+  document.querySelector('.avatar').textContent = selectedEmoji;
+  renderIdentityGrid();
+  renderQuickReplies();
+  closeCustomModal();
+  showMemoryToast(`已创建并切换到 ${selectedEmoji} ${name}`);
+}
+
+// 点击弹窗外关闭（用事件委托避免元素不存在报错）
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'custom-modal') closeCustomModal();
+});
+
+// ── Init ──
+async function init() {
+  // 主题
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') { isDark = false; document.body.classList.add('light'); document.querySelector('.theme-btn').textContent = '🌙'; }
+
+  // 先加入图片同步所需字段（messages表需要image_url列）
+  try {
+    merchant = await getMerchant();
+    if (!merchant) merchant = await createMerchant();
+
+    if (isExpired(merchant)) {
+      loadingEl.classList.add('hidden');
+      document.getElementById('expired').classList.add('show');
+      return;
+    }
+
+    const left = daysLeft(merchant);
+    document.getElementById('merchant-badge').textContent = left <= 3 ? `⚠️ 剩余${left}天` : `📍 ${merchant.name}`;
+
+    // 恢复自定义身份
+    // 不需要在这里恢复自定义身份，renderIdentityGrid会展示所有自定义身份
+    currentSessionId = 'identity_' + currentIdentity.id;
+    renderIdentityGrid();
+    renderQuickReplies();
+    await renderSessionList();
+
+    const history = await getHistory(currentSessionId);
+    if (history.length > 0) {
+      document.getElementById('welcome')?.remove();
+      for (const msg of history) {
+        addMessageToUI(msg.role === 'user' ? 'user' : 'ai', msg.content, false, msg.image_url || null);
+      }
+      sessionHistory = history.map(m => ({ role: m.role, content: m.content }));
+      scrollToBottom(false);
+      showMemoryToast(`已加载 ${history.length} 条历史记录 ✓`);
+    }
+
+    if (left <= 3 && left > 0) showMemoryToast(`⚠️ 试用期还剩 ${left} 天，请联系续费`);
+
+    loadingEl.classList.add('hidden');
+  } catch (err) {
+    console.error('Init error:', err);
+    loadingEl.classList.add('hidden');
+    document.getElementById('messages').innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--text-dim)">⚠️ 加载失败，请检查网络后刷新重试<br><br><button onclick="location.reload()" style="margin-top:12px;background:var(--accent);border:none;color:#000;padding:10px 24px;border-radius:20px;cursor:pointer;font-family:inherit;">重新加载</button></div>';
+  }
+}
+
+init();
+</script>
+
+<!-- 自定义身份弹窗 -->
+<div id="custom-modal">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>⚙️ 自定义助手设置</span>
+      <button class="modal-close" onclick="closeCustomModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>助手头像</label>
+      <div class="emoji-row" id="emoji-row"></div>
+    </div>
+    <div class="field">
+      <label>助手名称</label>
+      <input type="text" id="custom-name" placeholder="例如：小助手、工作搭档…">
+    </div>
+    <div class="field">
+      <label>角色背景（告诉AI它是谁、它的风格是什么）</label>
+      <textarea id="custom-prompt" placeholder="例如：你是一个专门服务女装店的客服，语气活泼，善用emoji，擅长写小红书风格文案…"></textarea>
+    </div>
+    <button class="modal-save" onclick="saveCustomIdentity()">保存并生效</button>
+  </div>
+</div>
+
+</body>
+</html>
